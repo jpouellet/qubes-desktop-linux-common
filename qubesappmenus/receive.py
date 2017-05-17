@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
 # The Qubes OS Project, http://www.qubes-os.org
@@ -20,7 +20,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 #
-import optparse
 
 import subprocess
 import re
@@ -29,16 +28,14 @@ import sys
 import shutil
 import pipes
 
-from optparse import OptionParser
-import qubes.exc
-import qubes.tools
+import qubesadmin.exc
+import qubesadmin.tools
 import qubesappmenus
 
 import qubesimgconverter
 
-parser = qubes.tools.QubesArgumentParser(
+parser = qubesadmin.tools.QubesArgumentParser(
     vmname_nargs='?',
-    want_force_root=True,
     description='retrieve appmenus')
 
 parser.add_argument('--force-rpc',
@@ -131,29 +128,34 @@ def get_appmenus(vm):
     if vm is None:
         while appmenus_line_limit_left > 0:
             untrusted_line = sys.stdin.readline(appmenus_line_size)
-            if untrusted_line == "":
+            if not untrusted_line:
                 break
             untrusted_appmenulist.append(untrusted_line.strip())
             appmenus_line_limit_left -= 1
         if appmenus_line_limit_left == 0:
-            raise qubes.exc.QubesException("Line count limit exceeded")
+            raise qubesadmin.exc.QubesException("Line count limit exceeded")
     else:
-        p = vm.run('QUBESRPC qubes.GetAppmenus dom0', passio_popen=True,
-                   gui=False)
+        p = vm.run_service('qubes.GetAppmenus')
         while appmenus_line_limit_left > 0:
             untrusted_line = p.stdout.readline(appmenus_line_size)
-            if untrusted_line == "":
+            if not untrusted_line:
                 break
-            untrusted_appmenulist.append(untrusted_line.strip())
+            try:
+                untrusted_line = untrusted_line.decode('ascii')
+                untrusted_appmenulist.append(untrusted_line.strip())
+            except UnicodeDecodeError:
+                # simply ignore non-ASCII lines
+                pass
             appmenus_line_limit_left -= 1
         p.wait()
         if p.returncode != 0:
             if vm.hvm:
                 untrusted_appmenulist = fallback_hvm_appmenulist()
             else:
-                raise qubes.exc.QubesException("Error getting application list")
+                raise qubesadmin.exc.QubesException(
+                    "Error getting application list")
         if appmenus_line_limit_left == 0:
-            raise qubes.exc.QubesException("Line count limit exceeded")
+            raise qubesadmin.exc.QubesException("Line count limit exceeded")
 
     appmenus = {}
     line_rx = re.compile(
@@ -193,9 +195,8 @@ def get_appmenus(vm):
 
                     appmenus[filename][key] = value
                 else:
-                    print >> sys.stderr, \
-                        "Warning: ignoring key %r of %s" % \
-                        (untrusted_key, filename)
+                    print("Warning: ignoring key %r of %s" %
+                        (untrusted_key, filename), file=sys.stderr)
             # else: ignore this key
 
     return appmenus
@@ -205,9 +206,9 @@ def create_template(path, values):
     # check if all required fields are present
     for key in required_fields:
         if key not in values:
-            print >> sys.stderr, "Warning: not creating/updating '%s' " \
-                                 "because of missing '%s' key" % (
-                                     path, key)
+            print("Warning: not creating/updating '%s' "
+                  "because of missing '%s' key" % (path, key),
+                  file=sys.stderr)
             return
 
     desktop_entry = ""
@@ -247,10 +248,10 @@ def process_appmenus_templates(appmenusext, vm, appmenus):
     old_umask = os.umask(0o002)
 
     if not os.path.exists(appmenusext.templates_dir(vm)):
-        os.mkdir(appmenusext.templates_dir(vm))
+        os.makedirs(appmenusext.templates_dir(vm))
 
     if not os.path.exists(appmenusext.template_icons_dir(vm)):
-        os.mkdir(appmenusext.template_icons_dir(vm))
+        os.makedirs(appmenusext.template_icons_dir(vm))
 
     if vm.hvm:
         if not os.path.exists(os.path.join(
@@ -287,7 +288,7 @@ def process_appmenus_templates(appmenusext, vm, appmenus):
                 if old_icon is None or icon != old_icon:
                     icon.save(icondest)
             except Exception as e:
-                vm.log.warning('Failed to get icon for {0}: {1!s}'.\
+                vm.log.warning('Failed to get icon for {0}: {1!s}'.
                     format(appmenu_file, e))
 
                 if os.path.exists(icondest):
@@ -319,17 +320,17 @@ def retrieve_appmenus_templates(vm, use_stdin=True):
     Returns: dict of desktop entries, each being dict itself.
     '''
     if hasattr(vm, 'template'):
-        raise qubes.exc.QubesException(
+        raise qubesadmin.exc.QubesException(
             "To sync appmenus for template based VM, do it on template instead")
 
     if not vm.is_running():
-        raise qubes.exc.QubesVMNotRunningError(vm,
+        raise qubesadmin.exc.QubesVMNotRunningError(
             "Appmenus can be retrieved only from running VM")
 
     new_appmenus = get_appmenus(vm if not use_stdin else None)
 
     if len(new_appmenus) == 0:
-        raise qubes.exc.QubesException("No appmenus received, terminating")
+        raise qubesadmin.exc.QubesException("No appmenus received, terminating")
     return new_appmenus
 
 

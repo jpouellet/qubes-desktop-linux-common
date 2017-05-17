@@ -143,7 +143,7 @@ class AppmenusExtension(qubes.ext.Extension):
         directory_file = os.path.join(appmenus_dir, vm.name + '-vm.directory')
         if self.write_desktop_file(vm,
                 pkg_resources.resource_string(__name__,
-                    self.directory_template_name(vm)), directory_file):
+                    self.directory_template_name(vm)).decode(), directory_file):
             anything_changed = True
 
         templates_dir = self.templates_dir(vm)
@@ -165,7 +165,7 @@ class AppmenusExtension(qubes.ext.Extension):
         if self.write_desktop_file(vm,
                 pkg_resources.resource_string(
                     __name__, 'qubes-appmenu-select.desktop.template'
-                ),
+                ).decode(),
                 os.path.join(appmenus_dir,
                     '-'.join((vm.name, 'qubes-appmenu-select.desktop')))):
             changed_appmenus.append('qubes-appmenu-select.desktop')

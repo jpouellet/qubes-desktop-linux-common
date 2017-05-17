@@ -16,6 +16,7 @@ BuildRequires:	python3
 Requires:	xdotool
 Requires:	xorg-x11-utils
 Requires:	python3-qubesimgconverter
+Requires:	python3-qubesadmin
 
 %define _builddir %(pwd)
 
