@@ -15,6 +15,7 @@ BuildRequires:	pandoc
 BuildRequires:	python3
 Requires:	xdotool
 Requires:	xorg-x11-utils
+Requires:	python3-qubesimgconverter
 
 %define _builddir %(pwd)
 
