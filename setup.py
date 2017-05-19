@@ -28,6 +28,7 @@ if __name__ == '__main__':
             ],
             'qubes.tests.extra': [
                 'qubesappmenus = qubesappmenus.tests:list_tests',
+                'qubesappmenus_integ = qubesappmenus.tests_integ:list_tests',
             ],
         }
     )
