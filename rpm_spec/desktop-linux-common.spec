@@ -17,6 +17,7 @@ Requires:	xdotool
 Requires:	xorg-x11-utils
 Requires:	python3-qubesimgconverter
 Requires:	python3-qubesadmin
+Requires:	python3-pyxdg
 
 %define _builddir %(pwd)
 
@@ -57,17 +58,24 @@ fi
 %{_bindir}/qvm-xkill
 %{_mandir}/man1/{qubes,qvm}-*.1*
 %dir %{python3_sitelib}/qubesdesktop-*.egg-info
+%{python3_sitelib}/qubesdesktop-*.egg-info/*
+%dir %{python3_sitelib}/qubesappmenus
 %dir %{python3_sitelib}/qubesappmenus/__pycache__
 %{python3_sitelib}/qubesappmenus/__pycache__/*
-%{python3_sitelib}/qubesdesktop-*.egg-info/*
-%{python3_sitelib}/qubesappmenus/__init__.py*
-%{python3_sitelib}/qubesappmenus/receive.py*
+%{python3_sitelib}/qubesappmenus/__init__.py
+%{python3_sitelib}/qubesappmenus/receive.py
 %{python3_sitelib}/qubesappmenus/qubes-appmenu-select.desktop.template
 %{python3_sitelib}/qubesappmenus/qubes-servicevm.directory.template
 %{python3_sitelib}/qubesappmenus/qubes-templatevm.directory.template
 %{python3_sitelib}/qubesappmenus/qubes-vm.directory.template
-%{python3_sitelib}/qubesappmenus/tests.py*
+%{python3_sitelib}/qubesappmenus/tests.py
 %{python3_sitelib}/qubesappmenus/test-data
+
+%dir %{python3_sitelib}/qubesappmenusext
+%dir %{python3_sitelib}/qubesappmenusext/__pycache__
+%{python3_sitelib}/qubesappmenusext/__pycache__/*
+%{python3_sitelib}/qubesappmenusext/__init__.py
+
 /etc/qubes-rpc/qubes.SyncAppMenus
 /usr/share/qubes-appmenus/qubes-dispvm-firefox.desktop
 /usr/share/qubes-appmenus/qubes-dispvm-xterm.desktop
@@ -76,3 +84,4 @@ fi
 /usr/share/qubes-appmenus/hvm
 /usr/share/qubes/icons/*.png
 /usr/bin/qvm-sync-appmenus
+/usr/bin/qvm-appmenus

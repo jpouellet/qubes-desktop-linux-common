@@ -351,7 +351,7 @@ def main(args=None):
         use_stdin = False
     else:
         use_stdin = True
-    appmenusext = qubesappmenus.AppmenusExtension()
+    appmenusext = qubesappmenus.Appmenus()
     if not args.regenerate_only:
         new_appmenus = retrieve_appmenus_templates(vm, use_stdin=use_stdin)
         process_appmenus_templates(appmenusext, vm, new_appmenus)

@@ -16,7 +16,7 @@ install:
 	PATH="/usr/bin:$$PATH" python3 setup.py install -O1 --skip-build --root $(DESTDIR)
 
 	mkdir -p $(DESTDIR)/etc/qubes-rpc/policy
-	cp qubesappmenus/qubes.SyncAppMenus $(DESTDIR)/etc/qubes-rpc/
+	install -m 0755 qubesappmenus/qubes.SyncAppMenus $(DESTDIR)/etc/qubes-rpc/
 
 	mkdir -p $(DESTDIR)/usr/share/qubes-appmenus/
 	cp -r appmenus-files/* $(DESTDIR)/usr/share/qubes-appmenus/

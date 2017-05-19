@@ -27,11 +27,16 @@ import os.path
 import shutil
 import dbus
 import pkg_resources
+import xdg.BaseDirectory
 
-import qubes.ext
-import qubes.vm.dispvm
+import qubesadmin
+import qubesadmin.tools
+import qubesadmin.vm
 
 import qubesimgconverter
+
+
+basedir = os.path.join(xdg.BaseDirectory.xdg_data_home, 'qubes-appmenus')
 
 
 class AppmenusSubdirs:
@@ -48,19 +53,14 @@ class AppmenusPaths:
         '/usr/share/qubes-appmenus/qubes-start.desktop'
 
 
-class AppmenusExtension(qubes.ext.Extension):
-    def __init__(self, *args):
-        super(AppmenusExtension, self).__init__(*args)
-        import qubes.vm.qubesvm
-        import qubes.vm.templatevm
-
+class Appmenus(object):
     def templates_dir(self, vm):
         """
 
         :type vm: qubes.vm.qubesvm.QubesVM
         """
         if vm.updateable:
-            return os.path.join(vm.dir_path,
+            return os.path.join(basedir, vm.name,
                 AppmenusSubdirs.templates_subdir)
         elif hasattr(vm, 'template'):
             return self.templates_dir(vm.template)
@@ -70,7 +70,7 @@ class AppmenusExtension(qubes.ext.Extension):
     def template_icons_dir(self, vm):
         '''Directory for not yet colore icons'''
         if vm.updateable:
-            return os.path.join(vm.dir_path,
+            return os.path.join(basedir, vm.name,
                 AppmenusSubdirs.template_icons_subdir)
         elif hasattr(vm, 'template'):
             return self.template_icons_dir(vm.template)
@@ -79,19 +79,19 @@ class AppmenusExtension(qubes.ext.Extension):
 
     def appmenus_dir(self, vm):
         '''Desktop files generated for particular VM'''
-        return os.path.join(vm.dir_path, AppmenusSubdirs.subdir)
+        return os.path.join(basedir, vm.name, AppmenusSubdirs.subdir)
 
     def icons_dir(self, vm):
         '''Icon files generated (colored) for particular VM'''
-        return os.path.join(vm.dir_path, AppmenusSubdirs.icons_subdir)
+        return os.path.join(basedir, vm.name, AppmenusSubdirs.icons_subdir)
 
     def whitelist_path(self, vm):
         '''File listing files wanted in menu'''
-        return os.path.join(vm.dir_path, AppmenusSubdirs.whitelist)
+        return os.path.join(basedir, vm.name, AppmenusSubdirs.whitelist)
 
     def directory_template_name(self, vm):
         '''File name of desktop directory entry template'''
-        if isinstance(vm, qubes.vm.templatevm.TemplateVM):
+        if vm.__class__.__name__ == 'TemplateVM':
             return 'qubes-templatevm.directory.template'
         elif vm.provides_network:
             return 'qubes-servicevm.directory.template'
@@ -110,7 +110,7 @@ class AppmenusExtension(qubes.ext.Extension):
             source = open(source).read()
         data = source.\
             replace("%VMNAME%", vm.name).\
-            replace("%VMDIR%", vm.dir_path).\
+            replace("%VMDIR%", os.path.join(basedir, vm.name)).\
             replace("%XDGICON%", vm.label.icon)
         if os.path.exists(destination_path):
             current_dest = open(destination_path).read()
@@ -131,7 +131,7 @@ class AppmenusExtension(qubes.ext.Extension):
 
         if vm.internal:
             return
-        if isinstance(vm, qubes.vm.dispvm.DispVM):
+        if isinstance(vm, qubesadmin.vm.DispVM):
             return
 
         vm.log.info("Creating appmenus")
@@ -265,7 +265,7 @@ class AppmenusExtension(qubes.ext.Extension):
 
         if vm.internal:
             return
-        if isinstance(vm, qubes.vm.dispvm.DispVM):
+        if isinstance(vm, qubesadmin.vm.DispVM):
             return
 
         whitelist = self.whitelist_path(vm)
@@ -276,10 +276,10 @@ class AppmenusExtension(qubes.ext.Extension):
 
         dstdir = self.icons_dir(vm)
         if not os.path.exists(dstdir):
-            os.mkdir(dstdir)
+            os.makedirs(dstdir)
         elif not os.path.isdir(dstdir):
             os.unlink(dstdir)
-            os.mkdir(dstdir)
+            os.makedirs(dstdir)
 
         if whitelist:
             expected_icons = \
@@ -307,107 +307,77 @@ class AppmenusExtension(qubes.ext.Extension):
             return
         shutil.rmtree(self.icons_dir(vm))
 
-    @qubes.ext.handler('property-pre-set:name', vm=qubes.vm.qubesvm.QubesVM)
-    def pre_rename(self, vm, event, prop, *args):
-        if not vm.dir_path or not os.path.exists(vm.dir_path):
-            return
-        self.appmenus_remove(vm)
+    def appmenus_init(self, vm, src=None):
+        '''Initialize directory structure on VM creation, copying appropriate
+        data from VM template if necessary
 
-    @qubes.ext.handler('property-set:name', vm=qubes.vm.qubesvm.QubesVM)
-    def post_rename(self, vm, event, prop, *args):
-        if not vm.dir_path or not os.path.exists(vm.dir_path):
-            return
-        self.appmenus_create(vm)
+        :param src: source VM to copy data from
+        '''
+        os.makedirs(os.path.join(basedir, vm.name))
+        if src is None:
+            try:
+                src = vm.template
+            except AttributeError:
+                pass
+        if vm.updateable and src is None:
+            os.makedirs(self.templates_dir(vm))
+            os.makedirs(self.template_icons_dir(vm))
 
-    @qubes.ext.handler('domain-create-on-disk')
-    def create_on_disk(self, vm, event):
-        if not vm.dir_path or not os.path.exists(vm.dir_path):
-            return
-        try:
-            source_template = vm.template
-        except AttributeError:
-            source_template = None
-        if vm.updateable and source_template is None:
-            os.mkdir(self.templates_dir(vm))
-            os.mkdir(self.template_icons_dir(vm))
-        if vm.hvm and source_template is None:
+        if vm.hvm and src is None:
             vm.log.info("Creating appmenus directory: {0}".format(
                 self.templates_dir(vm)))
             shutil.copy(AppmenusPaths.appmenu_start_hvm_template,
                         self.templates_dir(vm))
 
         source_whitelist_filename = 'vm-' + AppmenusSubdirs.whitelist
-        if source_template and os.path.exists(
-                os.path.join(source_template.dir_path, source_whitelist_filename)):
+        if src and os.path.exists(
+                os.path.join(basedir, src.name, source_whitelist_filename)):
             vm.log.info("Creating default whitelisted apps list: {0}".
-                    format(vm.dir_path + '/' + AppmenusSubdirs.whitelist))
+                    format(basedir + '/' + vm.name + '/' +
+                           AppmenusSubdirs.whitelist))
             shutil.copy(
-                os.path.join(source_template.dir_path, source_whitelist_filename),
-                os.path.join(vm.dir_path, AppmenusSubdirs.whitelist))
+                os.path.join(basedir, src.name, source_whitelist_filename),
+                os.path.join(basedir, vm.name, AppmenusSubdirs.whitelist))
 
         if vm.updateable:
+            for whitelist in (
+                    AppmenusSubdirs.whitelist,
+                        'vm-' + AppmenusSubdirs.whitelist,
+                        'netvm-' + AppmenusSubdirs.whitelist):
+                if os.path.exists(os.path.join(basedir, src.name, whitelist)):
+                    vm.log.info("Copying whitelisted apps list: {0}".
+                        format(whitelist))
+                    shutil.copy(os.path.join(basedir, src.name, whitelist),
+                        os.path.join(basedir, vm.name, whitelist))
+
             vm.log.info("Creating/copying appmenus templates")
-            if source_template and os.path.isdir(self.templates_dir(
-                    source_template)):
-                shutil.copytree(self.templates_dir(source_template),
+            if src and os.path.isdir(self.templates_dir(src)):
+                shutil.copytree(self.templates_dir(src),
                                 self.templates_dir(vm))
-            if source_template and os.path.isdir(self.template_icons_dir(
-                    source_template)):
-                shutil.copytree(self.template_icons_dir(source_template),
+            if src and os.path.isdir(self.template_icons_dir(src)):
+                shutil.copytree(self.template_icons_dir(src),
                                 self.template_icons_dir(vm))
 
-        # Create appmenus
-        self.appicons_create(vm)
-        self.appmenus_create(vm)
-
-    @qubes.ext.handler('domain-clone-files')
-    def clone_disk_files(self, vm, event, src_vm):
-        if not vm.dir_path or not os.path.exists(vm.dir_path):
-            return
-        if src_vm.updateable and self.templates_dir(vm) is not None and \
-                self.templates_dir(vm) is not None:
-            vm.log.info("Copying the template's appmenus templates "
-                        "dir:\n{0} ==>\n{1}".
-                    format(self.templates_dir(src_vm),
-                           self.templates_dir(vm)))
-            shutil.copytree(self.templates_dir(src_vm),
-                            self.templates_dir(vm))
-
-        if src_vm.updateable and self.template_icons_dir(vm) is not None \
-                and self.template_icons_dir(vm) is not None and \
-                os.path.isdir(self.template_icons_dir(src_vm)):
-            vm.log.info("Copying the template's appmenus "
-                        "template icons dir:\n{0} ==>\n{1}".
-                    format(self.template_icons_dir(src_vm),
-                           self.template_icons_dir(vm)))
-            shutil.copytree(self.template_icons_dir(src_vm),
-                            self.template_icons_dir(vm))
-
-        for whitelist in (
-                AppmenusSubdirs.whitelist,
-                'vm-' + AppmenusSubdirs.whitelist,
-                'netvm-' + AppmenusSubdirs.whitelist):
-            if os.path.exists(os.path.join(src_vm.dir_path, whitelist)):
-                vm.log.info("Copying whitelisted apps list: {0}".
-                    format(whitelist))
-                shutil.copy(os.path.join(src_vm.dir_path, whitelist),
-                            os.path.join(vm.dir_path, whitelist))
-
-        # Create appmenus
-        self.appicons_create(vm)
-        self.appmenus_create(vm)
 
 
-    @qubes.ext.handler('domain-remove-from-disk')
-    def remove_from_disk(self, vm, event):
-        self.appmenus_remove(vm)
-
-
-    @qubes.ext.handler('property-set:label')
-    def label_setter(self, vm, event, *args):
-        if not vm.dir_path or not os.path.exists(vm.dir_path):
-            return
-        self.appicons_create(vm, force=True)
+    def appmenus_update(self, vm, force=False):
+        '''Update (regenerate) desktop files and icons for this VM and (in
+        case of template) child VMs'''
+        self.appicons_create(vm, force=force)
+        self.appmenus_create(vm, refresh_cache=False)
+        if hasattr(vm, 'appvms'):
+            for child_vm in vm.appvms:
+                try:
+                    self.appicons_create(child_vm, force=force)
+                    self.appmenus_create(child_vm, refresh_cache=False)
+                except Exception as e:
+                    child_vm.log.error("Failed to recreate appmenus for "
+                                       "'{0}': {1}".format(child_vm.name,
+                        str(e)))
+        subprocess.call(['xdg-desktop-menu', 'forceupdate'])
+        if 'KDE_SESSION_UID' in os.environ:
+            subprocess.call([
+                'kbuildsycoca' + os.environ.get('KDE_SESSION_VERSION', '4')])
 
         # Apparently desktop environments heavily caches the icons,
         # see #751 for details
@@ -429,63 +399,40 @@ class AppmenusExtension(qubes.ext.Extension):
                     dbus_interface="org.freedesktop.Notifications")
             except:
                 pass
-        elif "xfce" in os.environ.get("DESKTOP_SESSION", ""):
-            self.appmenus_remove(vm)
-            self.appmenus_create(vm)
 
-    @qubes.ext.handler('property-set:internal')
-    def on_property_set_internal(self, vm, event, prop, newvalue, *args):
-        if not vm.dir_path or not os.path.exists(vm.dir_path):
-            return
-        if len(args):
-            oldvalue = args[0]
-        else:
-            oldvalue = vm.__class__.internal._default
-        if newvalue and not oldvalue:
-            self.appmenus_remove(vm)
-        elif not newvalue and oldvalue:
-            self.appmenus_create(vm)
 
-    @qubes.ext.handler('backup-get-files')
-    def files_for_backup(self, vm, event):
-        if not vm.dir_path or not os.path.exists(vm.dir_path):
-            return
-        if vm.internal:
-            return
-        if vm.updateable:
-            yield self.templates_dir(vm)
-            yield self.template_icons_dir(vm)
-        if os.path.exists(self.whitelist_path(vm)):
-            yield self.whitelist_path(vm)
-        for whitelist in (
-                'vm-' + AppmenusSubdirs.whitelist,
-                'netvm-' + AppmenusSubdirs.whitelist):
-            if os.path.exists(os.path.join(vm.dir_path, whitelist)):
-                yield os.path.join(vm.dir_path, whitelist)
+parser = qubesadmin.tools.QubesArgumentParser(vmname_nargs='+')
+parser.add_argument('--init', action='store_true',
+    help='Initialize directory structure for appmenus (on VM creation)')
+parser.add_argument('--create', action='store_true',
+    help='Create appmenus')
+parser.add_argument('--remove', action='store_true',
+    help='Remove appmenus')
+parser.add_argument('--update', action='store_true',
+    help='Update appmenus')
+parser.add_argument('--source', action='store', default=None,
+    help='Source VM to copy data from (for --init option)')
+parser.add_argument('--force', action='store_true', default=False,
+    help='Force refreshing files, even when looks up to date')
 
-    def appmenus_update(self, vm):
-        '''Update (regenerate) desktop files and icons for this VM and (in
-        case of template) child VMs'''
-        self.appicons_create(vm)
-        self.appmenus_create(vm)
-        if hasattr(vm, 'appvms'):
-            for child_vm in vm.appvms:
-                try:
-                    self.appicons_create(child_vm)
-                    self.appmenus_create(child_vm, refresh_cache=False)
-                except Exception as e:
-                    child_vm.log.error("Failed to recreate appmenus for "
-                                       "'{0}': {1}".format(child_vm.name,
-                        str(e)))
-            subprocess.call(['xdg-desktop-menu', 'forceupdate'])
-            if 'KDE_SESSION_UID' in os.environ:
-                subprocess.call([
-                    'kbuildsycoca' + os.environ.get('KDE_SESSION_VERSION',
-                        '4')])
 
-    @qubes.ext.handler('template-postinstall')
-    def on_template_postinstall(self, vm, event):
-        import qubesappmenus.receive
-        new_appmenus = qubesappmenus.receive.retrieve_appmenus_templates(
-            vm, use_stdin=False)
-        qubesappmenus.receive.process_appmenus_templates(self, vm, new_appmenus)
+def main(args=None, app=None):
+    args = parser.parse_args(args=args, app=app)
+    appmenus = Appmenus()
+    if args.source is not None:
+        args.source = args.app.domains[args.source]
+    for vm in args.domains:
+        # allow multiple actions
+        if args.remove:
+            appmenus.appmenus_remove(vm)
+            appmenus.appicons_remove(vm)
+        if args.init:
+            appmenus.appmenus_init(vm, src=args.source)
+        if args.create:
+            appmenus.appicons_create(vm, force=args.force)
+            appmenus.appmenus_create(vm)
+        if args.update:
+            appmenus.appmenus_update(vm, force=args.force)
+
+if __name__ == '__main__':
+    sys.exit(main())
