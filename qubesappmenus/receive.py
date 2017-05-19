@@ -50,7 +50,8 @@ parser.add_argument('--regenerate-only',
 # TODO offline mode
 
 # fields required to be present (and verified) in retrieved desktop file
-required_fields = ["Name", "Exec"]
+required_fields_legacy = ["Name", "Exec"]
+required_fields = ["Name"]
 
 # limits
 appmenus_line_size = 1024
@@ -63,7 +64,7 @@ fields_regexp = {
     "GenericName": std_re,
     "Comment": std_re,
     "Categories": re.compile(r"^[a-zA-Z0-9/.;:'() -]*$"),
-    "Exec": re.compile(r"^[a-zA-Z0-9()_%&>/{}\"'\\:.= -]*$"),
+    "Exec": re.compile(r"^[a-zA-Z0-9()_&>/{}:.= -]*$"),
     "Icon": re.compile(r"^[a-zA-Z0-9/_.-]*$"),
 }
 
@@ -148,6 +149,7 @@ def get_appmenus(vm):
                 pass
             appmenus_line_limit_left -= 1
         p.wait()
+        p.stdout.close()
         if p.returncode != 0:
             if vm.hvm:
                 untrusted_appmenulist = fallback_hvm_appmenulist()
@@ -159,8 +161,9 @@ def get_appmenus(vm):
 
     appmenus = {}
     line_rx = re.compile(
-        r"([a-zA-Z0-9.()_-]+.desktop):([a-zA-Z0-9-]+(?:\[[a-zA-Z@_]+\])?)=(.*)")
-    ignore_rx = re.compile(r".*([a-zA-Z0-9._-]+.desktop):(#.*|\s+)$")
+        r"([a-zA-Z0-9._-]+?)(?:\.desktop)?:"
+        r"([a-zA-Z0-9-]+(?:\[[a-zA-Z@_]+\])?)=(.*)")
+    ignore_rx = re.compile(r".*([a-zA-Z0-9._-]+.desktop):(#.*|\s*)$")
     for untrusted_line in untrusted_appmenulist:
         # Ignore blank lines and comments
         if len(untrusted_line) == 0 or ignore_rx.match(untrusted_line):
@@ -168,9 +171,9 @@ def get_appmenus(vm):
         # use search instead of match to skip file path
         untrusted_m = line_rx.search(untrusted_line)
         if untrusted_m:
-            filename = untrusted_m.group(1)
-            assert '/' not in filename
-            assert '\0' not in filename
+            name = untrusted_m.group(1)
+            assert '/' not in name
+            assert '\0' not in name
 
             untrusted_key = untrusted_m.group(2)
             assert '\0' not in untrusted_key
@@ -190,21 +193,34 @@ def get_appmenus(vm):
                     else:
                         value = untrusted_value
 
-                    if filename not in appmenus:
-                        appmenus[filename] = {}
+                    if name not in appmenus:
+                        appmenus[name] = {}
 
-                    appmenus[filename][key] = value
+                    appmenus[name][key] = value
                 else:
                     print("Warning: ignoring key %r of %s" %
-                        (untrusted_key, filename), file=sys.stderr)
+                        (untrusted_key, name), file=sys.stderr)
             # else: ignore this key
 
     return appmenus
 
 
-def create_template(path, values):
+def create_template(path, name, values, legacy):
+    '''
+    Create desktop entry template based on values in `values` and save it to
+    `path`.
+    :param path: Path where template should be saved
+    :param values: dict with values retrieved from VM (as in Desktop Entry
+    specification)
+    :param legacy: create legacy template, for VM without qubes.StartApp service
+    :return: None
+    '''
     # check if all required fields are present
-    for key in required_fields:
+    if legacy:
+        req_fields = required_fields_legacy
+    else:
+        req_fields = required_fields
+    for key in req_fields:
         if key not in values:
             print("Warning: not creating/updating '%s' "
                   "because of missing '%s' key" % (path, key),
@@ -236,8 +252,16 @@ def create_template(path, values):
         if key in values:
             desktop_entry += "{0}={1}\n".format(key, values[key])
 
-    desktop_entry += "Exec=qvm-run -q --tray -a %VMNAME% -- {0}\n".format(
-        pipes.quote(values['Exec']))
+    if legacy:
+        desktop_entry += "Exec=qvm-run -q -a %VMNAME% -- {0}\n".format(
+            pipes.quote(values['Exec']))
+    else:
+        # already validated before, but make sure no one will break it
+        assert ' ' not in name
+        assert ';' not in name
+        assert '%' not in name
+        desktop_entry += "Exec=qvm-run -q -a --service -- %VMNAME% " \
+                         "qubes.StartApp+{}\n".format(name)
     if not os.path.exists(path) or desktop_entry != open(path, "r").read():
         desktop_file = open(path, "w")
         desktop_file.write(desktop_entry)
@@ -246,6 +270,9 @@ def create_template(path, values):
 
 def process_appmenus_templates(appmenusext, vm, appmenus):
     old_umask = os.umask(0o002)
+
+    legacy_appmenus = vm.features.check_with_template(
+        'legacy-appmenus', False)
 
     if not os.path.exists(appmenusext.templates_dir(vm)):
         os.makedirs(appmenusext.templates_dir(vm))
@@ -262,25 +289,25 @@ def process_appmenus_templates(appmenusext, vm, appmenus):
                 appmenusext.templates_dir(vm))
 
 
-    for appmenu_file in appmenus.keys():
+    for appmenu_name in appmenus.keys():
         if os.path.exists(
                 os.path.join(appmenusext.templates_dir(vm),
-                    appmenu_file)):
-            vm.log.info("Updating {0}".format(appmenu_file))
+                    appmenu_name)):
+            vm.log.info("Updating {0}".format(appmenu_name))
         else:
-            vm.log.info("Creating {0}".format(appmenu_file))
+            vm.log.info("Creating {0}".format(appmenu_name))
 
         # TODO: icons support in offline mode
         # TODO if options.offline_mode:
-        # TODO     new_appmenus[appmenu_file].pop('Icon', None)
-        if 'Icon' in appmenus[appmenu_file]:
+        # TODO     new_appmenus[appmenu_name].pop('Icon', None)
+        if 'Icon' in appmenus[appmenu_name]:
             # the following line is used for time comparison
             icondest = os.path.join(appmenusext.template_icons_dir(vm),
-                                    os.path.splitext(appmenu_file)[0] + '.png')
+                                    os.path.splitext(appmenu_name)[0] + '.png')
 
             try:
                 icon = qubesimgconverter.Image. \
-                    get_xdg_icon_from_vm(vm, appmenus[appmenu_file]['Icon'])
+                    get_xdg_icon_from_vm(vm, appmenus[appmenu_name]['Icon'])
                 if os.path.exists(icondest):
                     old_icon = qubesimgconverter.Image.load_from_file(icondest)
                 else:
@@ -289,22 +316,23 @@ def process_appmenus_templates(appmenusext, vm, appmenus):
                     icon.save(icondest)
             except Exception as e:
                 vm.log.warning('Failed to get icon for {0}: {1!s}'.
-                    format(appmenu_file, e))
+                    format(appmenu_name, e))
 
                 if os.path.exists(icondest):
                     vm.log.warning('Found old icon, using it instead')
                 else:
-                    del appmenus[appmenu_file]['Icon']
+                    del appmenus[appmenu_name]['Icon']
 
         create_template(os.path.join(appmenusext.templates_dir(vm),
-            appmenu_file), appmenus[appmenu_file])
+            appmenu_name + '.desktop'), appmenu_name,
+            appmenus[appmenu_name], legacy_appmenus)
 
     # Delete appmenus of removed applications
     for appmenu_file in os.listdir(appmenusext.templates_dir(vm)):
         if not appmenu_file.endswith('.desktop'):
             continue
 
-        if appmenu_file not in appmenus:
+        if appmenu_file[:-len('.desktop')] not in appmenus:
             vm.log.info("Removing {0}".format(appmenu_file))
             os.unlink(os.path.join(appmenusext.templates_dir(vm),
                 appmenu_file))
