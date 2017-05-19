@@ -1,0 +1,4 @@
+[run]
+source = qubesappmenus
+omit = qubesappmenus/tests*
+
