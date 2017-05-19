@@ -13,6 +13,8 @@ URL:		http://www.qubes-os.org
 BuildArch:	noarch
 BuildRequires:	pandoc
 BuildRequires:	python3
+BuildRequires:	python3-devel
+BuildRequires:	ImageMagick
 Requires:	xdotool
 Requires:	xorg-x11-utils
 Requires:	python3-qubesimgconverter
