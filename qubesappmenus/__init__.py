@@ -79,15 +79,15 @@ class Appmenus(object):
 
     def appmenus_dir(self, vm):
         '''Desktop files generated for particular VM'''
-        return os.path.join(basedir, vm.name, AppmenusSubdirs.subdir)
+        return os.path.join(basedir, str(vm), AppmenusSubdirs.subdir)
 
     def icons_dir(self, vm):
         '''Icon files generated (colored) for particular VM'''
-        return os.path.join(basedir, vm.name, AppmenusSubdirs.icons_subdir)
+        return os.path.join(basedir, str(vm), AppmenusSubdirs.icons_subdir)
 
     def whitelist_path(self, vm):
         '''File listing files wanted in menu'''
-        return os.path.join(basedir, vm.name, AppmenusSubdirs.whitelist)
+        return os.path.join(basedir, str(vm), AppmenusSubdirs.whitelist)
 
     def directory_template_name(self, vm):
         '''File name of desktop directory entry template'''
@@ -224,13 +224,21 @@ class Appmenus(object):
                                  os.environ.get('KDE_SESSION_VERSION', '4')])
 
     def appmenus_remove(self, vm, refresh_cache=True):
-        '''Remove desktop files for particular VM'''
+        '''Remove desktop files for particular VM
+
+        Warning: vm may be either QubesVM object, or just its name (str).
+        Actual VM may be already removed at this point.
+        '''
         appmenus_dir = self.appmenus_dir(vm)
         if os.path.exists(appmenus_dir):
-            vm.log.info("Removing appmenus")
+            if hasattr(vm, 'log'):
+                vm.log.info("Removing appmenus")
+            else:
+                print("Removing appmenus for {!s}".format(vm),
+                    file=sys.stderr)
             installed_appmenus = os.listdir(appmenus_dir)
             directory_file = os.path.join(self.appmenus_dir(vm),
-                vm.name + '-vm.directory')
+                str(vm) + '-vm.directory')
             installed_appmenus.remove(os.path.basename(directory_file))
             if installed_appmenus:
                 appmenus_to_remove_fnames = map(
@@ -246,7 +254,12 @@ class Appmenus(object):
                     subprocess.check_call(desktop_menu_cmd,
                         env=desktop_menu_env)
                 except subprocess.CalledProcessError:
-                    vm.log.warning("Problem removing appmenus")
+                    if hasattr(vm, 'log'):
+                        vm.log.warning("Problem removing appmenus")
+                    else:
+                        print(
+                            "Problem removing appmenus for {!s}".format(vm),
+                            file=sys.stderr)
             shutil.rmtree(appmenus_dir)
 
         if refresh_cache:
@@ -302,7 +315,11 @@ class Appmenus(object):
                 os.unlink(os.path.join(dstdir, icon))
 
     def appicons_remove(self, vm):
-        '''Remove icons'''
+        '''Remove icons
+
+        Warning: vm may be either QubesVM object, or just its name (str).
+        Actual VM may be already removed at this point.
+        '''
         if not os.path.exists(self.icons_dir(vm)):
             return
         shutil.rmtree(self.icons_dir(vm))
@@ -401,7 +418,7 @@ class Appmenus(object):
                 pass
 
 
-parser = qubesadmin.tools.QubesArgumentParser(vmname_nargs='+')
+parser = qubesadmin.tools.QubesArgumentParser()
 parser.add_argument('--init', action='store_true',
     help='Initialize directory structure for appmenus (on VM creation)')
 parser.add_argument('--create', action='store_true',
@@ -414,6 +431,8 @@ parser.add_argument('--source', action='store', default=None,
     help='Source VM to copy data from (for --init option)')
 parser.add_argument('--force', action='store_true', default=False,
     help='Force refreshing files, even when looks up to date')
+parser.add_argument('domains', metavar='VMNAME', nargs='+',
+    help='VMs on which perform requested actions')
 
 
 def main(args=None, app=None):
@@ -423,16 +442,21 @@ def main(args=None, app=None):
         args.source = args.app.domains[args.source]
     for vm in args.domains:
         # allow multiple actions
+        # for remove still use just VM name (str), because VM may be already
+        # removed
         if args.remove:
             appmenus.appmenus_remove(vm)
             appmenus.appicons_remove(vm)
-        if args.init:
-            appmenus.appmenus_init(vm, src=args.source)
-        if args.create:
-            appmenus.appicons_create(vm, force=args.force)
-            appmenus.appmenus_create(vm)
-        if args.update:
-            appmenus.appmenus_update(vm, force=args.force)
+        # for other actions - get VM object
+        if args.init or args.create or args.update:
+            vm = args.app.domains[vm]
+            if args.init:
+                appmenus.appmenus_init(vm, src=args.source)
+            if args.create:
+                appmenus.appicons_create(vm, force=args.force)
+                appmenus.appmenus_create(vm)
+            if args.update:
+                appmenus.appmenus_update(vm, force=args.force)
 
 if __name__ == '__main__':
     sys.exit(main())
