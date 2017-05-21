@@ -48,8 +48,8 @@ class AppmenusExtension(qubes.ext.Extension):
             return
 
         proc = yield from asyncio.create_subprocess_exec(
-            ['runuser', '-u', user, '--',
-            'env', 'DISPLAY=:0'] + command)
+            'runuser', '-u', user, '--', 'env', 'DISPLAY=:0',
+            *command)
         yield from proc.wait()
         if proc.returncode != 0:
             self.log.warning('Command \'%s\' failed', ' '.join(command))
