@@ -375,7 +375,40 @@ class Appmenus(object):
                 shutil.copytree(self.template_icons_dir(src),
                                 self.template_icons_dir(vm))
 
+    def set_default_whitelist(self, vm, applications_list):
+        '''Update default applications list for VMs created on this template
 
+        :param vm: VM object
+        :param applications_list: list of applications to include
+        '''
+        if not os.path.exists(os.path.join(basedir, vm.name)):
+            return
+        with open(os.path.join(basedir, str(vm),
+                        'vm-' + AppmenusSubdirs.whitelist), 'w') as \
+                default_whitelist:
+            default_whitelist.write('\n'.join(applications_list))
+
+    def set_whitelist(self, vm, applications_list):
+        '''Update list of applications to be included in the menu
+
+        :param vm: VM object
+        :param applications_list: list of applications to include
+        '''
+        if not os.path.exists(os.path.join(basedir, vm.name)):
+            return
+        with open(self.whitelist_path(vm), 'w') as whitelist:
+            whitelist.write('\n'.join(applications_list))
+
+    def get_whitelist(self, vm):
+        '''Retrieve list of applications to be included in the menu
+
+        :param vm: VM object
+        :return: list of applications (.desktop file names), or None if not set
+        '''
+        if not os.path.exists(self.whitelist_path(vm)):
+            return None
+        with open(self.whitelist_path(vm), 'r') as whitelist:
+            return whitelist.readlines()
 
     def appmenus_update(self, vm, force=False):
         '''Update (regenerate) desktop files and icons for this VM and (in
@@ -427,12 +460,35 @@ parser.add_argument('--remove', action='store_true',
     help='Remove appmenus')
 parser.add_argument('--update', action='store_true',
     help='Update appmenus')
+parser.add_argument('--get-whitelist', action='store_true',
+    help='Get list of applications to include in the menu')
+parser.add_argument('--set-whitelist', metavar='PATH', action='store',
+    help='Set list of applications to include in the menu,'
+         'use \'-\' to read from stdin')
+parser.add_argument('--set-default-whitelist', metavar='PATH', action='store',
+    help='Set default list of applications to include in menu '
+         'for VMs based on this template,'
+         'use \'-\' to read from stdin')
 parser.add_argument('--source', action='store', default=None,
     help='Source VM to copy data from (for --init option)')
 parser.add_argument('--force', action='store_true', default=False,
     help='Force refreshing files, even when looks up to date')
 parser.add_argument('domains', metavar='VMNAME', nargs='+',
     help='VMs on which perform requested actions')
+
+
+def retrieve_list(path):
+    '''Helper function to retrieve data from given path, or stdin if '-'
+    specified, then return it as a list of lines.
+
+    :param path: path or '-'
+    :return: list of lines
+    '''
+    if path == '-':
+        return sys.stdin.readlines()
+    else:
+        with open(path, 'r') as file:
+            return file.readlines()
 
 
 def main(args=None, app=None):
@@ -448,10 +504,20 @@ def main(args=None, app=None):
             appmenus.appmenus_remove(vm)
             appmenus.appicons_remove(vm)
         # for other actions - get VM object
-        if args.init or args.create or args.update:
+        if args.init or args.create or args.update or args.set_whitelist or \
+                args.set_default_whitelist or args.get_whitelist:
             vm = args.app.domains[vm]
             if args.init:
                 appmenus.appmenus_init(vm, src=args.source)
+            if args.get_whitelist:
+                whitelist = appmenus.get_whitelist(vm)
+                print('\n'.join(whitelist))
+            if args.set_default_whitelist:
+                whitelist = retrieve_list(args.set_default_whitelist)
+                appmenus.set_default_whitelist(vm, whitelist)
+            if args.set_whitelist:
+                whitelist = retrieve_list(args.set_whitelist)
+                appmenus.set_whitelist(vm, whitelist)
             if args.create:
                 appmenus.appicons_create(vm, force=args.force)
                 appmenus.appmenus_create(vm)
