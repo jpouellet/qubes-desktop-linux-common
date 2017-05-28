@@ -356,7 +356,7 @@ class Appmenus(object):
                 os.path.join(basedir, src.name, source_whitelist_filename),
                 os.path.join(basedir, vm.name, AppmenusSubdirs.whitelist))
 
-        if vm.updateable:
+        if src and vm.updateable:
             for whitelist in (
                     AppmenusSubdirs.whitelist,
                         'vm-' + AppmenusSubdirs.whitelist,
@@ -368,10 +368,10 @@ class Appmenus(object):
                         os.path.join(basedir, vm.name, whitelist))
 
             vm.log.info("Creating/copying appmenus templates")
-            if src and os.path.isdir(self.templates_dir(src)):
+            if os.path.isdir(self.templates_dir(src)):
                 shutil.copytree(self.templates_dir(src),
                                 self.templates_dir(vm))
-            if src and os.path.isdir(self.template_icons_dir(src)):
+            if os.path.isdir(self.template_icons_dir(src)):
                 shutil.copytree(self.template_icons_dir(src),
                                 self.template_icons_dir(vm))
 
