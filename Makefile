@@ -21,3 +21,4 @@ install:
 	mkdir -p $(DESTDIR)/usr/share/qubes-appmenus/
 	cp -r appmenus-files/* $(DESTDIR)/usr/share/qubes-appmenus/
 
+	$(MAKE) -C qubes-menus install

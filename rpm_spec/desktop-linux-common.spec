@@ -1,5 +1,7 @@
 %{!?version: %define version %(cat version)}
 
+%define desktop_file_utils_version 0.9
+
 Name:		qubes-desktop-linux-common
 Version:	%{version}
 Release:	1%{?dist}
@@ -15,6 +17,7 @@ BuildRequires:	pandoc
 BuildRequires:	python3
 BuildRequires:	python3-devel
 BuildRequires:	ImageMagick
+BuildRequires: desktop-file-utils >= %{desktop_file_utils_version}
 Requires:	xdotool
 Requires:	xorg-x11-utils
 Requires:	python3-qubesimgconverter
@@ -25,6 +28,28 @@ Requires:	python3-pyxdg
 
 %description
 Common code used for multiple desktop environments' Qubes integration
+
+%package -n qubes-menus
+Summary: Configuration and data files for the desktop menus
+Group: User Interface/Desktops
+Requires(post): desktop-file-utils >= %{desktop_file_utils_version}
+Requires(postun): desktop-file-utils >= %{desktop_file_utils_version}
+
+## old nautilus contained start-here stuff
+Conflicts: nautilus <= 2.0.3-1
+## desktop files in redhat-menus point to icons in new artwork
+Conflicts: redhat-artwork < 0.35
+## old evolution packages point to a no-longer-existing symlink
+Conflicts: evolution <= 2.4.1-5
+
+Provides: redhat-menus
+Obsoletes: redhat-menus
+
+%description -n qubes-menus
+This package contains the XML files that describe the menu layout for
+GNOME and KDE, and the .desktop files that define the names and icons
+of "subdirectories" in the menus.
+
 
 %build
 make
@@ -88,3 +113,14 @@ fi
 /usr/share/qubes/icons/*.png
 /usr/bin/qvm-sync-appmenus
 /usr/bin/qvm-appmenus
+
+%files -n qubes-menus
+%defattr(-,root,root)
+%doc qubes-menus/README
+%dir %{_sysconfdir}/xdg/menus
+%dir %{_sysconfdir}/xdg/menus/applications-merged
+%dir %{_sysconfdir}/xdg/menus/preferences-merged
+%dir %{_sysconfdir}/xdg/menus/preferences-post-merged
+%dir %{_sysconfdir}/xdg/menus/settings-merged
+%config %{_sysconfdir}/xdg/menus/*.menu
+%{_datadir}/desktop-directories/*.directory
