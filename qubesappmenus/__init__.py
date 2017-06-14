@@ -129,7 +129,7 @@ class Appmenus(object):
         :return: None
         """
 
-        if vm.internal:
+        if vm.features.get('internal', False):
             return
         if isinstance(vm, qubesadmin.vm.DispVM):
             return
@@ -276,7 +276,7 @@ class Appmenus(object):
         if not os.path.exists(srcdir):
             return
 
-        if vm.internal:
+        if vm.features.get('internal', False):
             return
         if isinstance(vm, qubesadmin.vm.DispVM):
             return
