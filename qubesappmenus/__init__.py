@@ -47,7 +47,7 @@ class AppmenusSubdirs:
     template_templates_subdir = 'apps-template.templates'
     whitelist = 'whitelisted-appmenus.list'
 
-    
+
 class AppmenusPaths:
     appmenu_start_hvm_template = \
         '/usr/share/qubes-appmenus/qubes-start.desktop'
@@ -119,6 +119,22 @@ class Appmenus(object):
         with open(destination_path, "w") as f:
             f.write(data)
         return True
+
+    def get_available(self, vm):
+        # TODO icon path (#2885)
+        templates_dir = self.templates_dir(vm)
+        if templates_dir is None or not os.path.isdir(templates_dir):
+            return
+        for filename in os.listdir(templates_dir):
+            with open(os.path.join(templates_dir, filename)) as file:
+                name = None
+                for line in file:
+                    if line.startswith('Name=%VMNAME%: '):
+                        name = line.partition('Name=%VMNAME%: ')[2].strip()
+                        break
+            assert name is not None, \
+                'template {!r} does not contain name'.format(filename)
+            yield (filename, name)
 
     def appmenus_create(self, vm, refresh_cache=True):
         """Create/update .desktop files
@@ -408,7 +424,11 @@ class Appmenus(object):
         if not os.path.exists(self.whitelist_path(vm)):
             return None
         with open(self.whitelist_path(vm), 'r') as whitelist:
-            return whitelist.readlines()
+            for line in whitelist:
+                line = line.strip()
+                if not line:
+                    continue
+                yield line
 
     def appmenus_update(self, vm, force=False):
         '''Update (regenerate) desktop files and icons for this VM and (in
@@ -452,6 +472,9 @@ class Appmenus(object):
 
 
 parser = qubesadmin.tools.QubesArgumentParser()
+
+parser_stdin_mode = parser.add_mutually_exclusive_group()
+
 parser.add_argument('--init', action='store_true',
     help='Initialize directory structure for appmenus (on VM creation)')
 parser.add_argument('--create', action='store_true',
@@ -460,12 +483,14 @@ parser.add_argument('--remove', action='store_true',
     help='Remove appmenus')
 parser.add_argument('--update', action='store_true',
     help='Update appmenus')
+parser.add_argument('--get-available', action='store_true',
+    help='Get list of applications available')
 parser.add_argument('--get-whitelist', action='store_true',
     help='Get list of applications to include in the menu')
-parser.add_argument('--set-whitelist', metavar='PATH', action='store',
+parser_stdin_mode.add_argument('--set-whitelist', metavar='PATH', action='store',
     help='Set list of applications to include in the menu,'
          'use \'-\' to read from stdin')
-parser.add_argument('--set-default-whitelist', metavar='PATH', action='store',
+parser_stdin_mode.add_argument('--set-default-whitelist', metavar='PATH', action='store',
     help='Set default list of applications to include in menu '
          'for VMs based on this template,'
          'use \'-\' to read from stdin')
@@ -473,6 +498,9 @@ parser.add_argument('--source', action='store', default=None,
     help='Source VM to copy data from (for --init option)')
 parser.add_argument('--force', action='store_true', default=False,
     help='Force refreshing files, even when looks up to date')
+parser.add_argument('--i-understand-format-is-unstable', dest='fool',
+    action='store_true',
+    help='required pledge for --get-available')
 parser.add_argument('domains', metavar='VMNAME', nargs='+',
     help='VMs on which perform requested actions')
 
@@ -506,7 +534,8 @@ def main(args=None, app=None):
             shutil.rmtree(os.path.join(basedir, str(vm)))
         # for other actions - get VM object
         if args.init or args.create or args.update or args.set_whitelist or \
-                args.set_default_whitelist or args.get_whitelist:
+                args.set_default_whitelist or args.get_whitelist or \
+                args.get_available:
             vm = args.app.domains[vm]
             if args.init:
                 appmenus.appmenus_init(vm, src=args.source)
@@ -524,6 +553,13 @@ def main(args=None, app=None):
                 appmenus.appmenus_create(vm)
             if args.update:
                 appmenus.appmenus_update(vm, force=args.force)
+            if args.get_available:
+                if not args.fool:
+                    parser.error(
+                        'this requires --i-understand-format-is-unstable '
+                        'and a sacrifice of one cute kitten')
+                sys.stdout.write(''.join('{} - {}\n'.format(*available)
+                    for available in appmenus.get_available(vm)))
 
 if __name__ == '__main__':
     sys.exit(main())
