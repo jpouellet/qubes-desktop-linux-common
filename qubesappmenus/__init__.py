@@ -47,7 +47,7 @@ class AppmenusSubdirs:
     template_templates_subdir = 'apps-template.templates'
     whitelist = 'whitelisted-appmenus.list'
 
-    
+
 class AppmenusPaths:
     appmenu_start_hvm_template = \
         '/usr/share/qubes-appmenus/qubes-start.desktop'
@@ -296,7 +296,7 @@ class Appmenus(object):
 
         if whitelist:
             expected_icons = \
-                map(lambda x: os.path.splitext(x)[0] + '.png', whitelist)
+                list(map(lambda x: os.path.splitext(x)[0] + '.png', whitelist))
         else:
             expected_icons = os.listdir(srcdir)
 
