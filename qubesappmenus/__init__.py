@@ -312,7 +312,7 @@ class Appmenus(object):
 
         if whitelist:
             expected_icons = \
-                map(lambda x: os.path.splitext(x)[0] + '.png', whitelist)
+                list(map(lambda x: os.path.splitext(x)[0] + '.png', whitelist))
         else:
             expected_icons = os.listdir(srcdir)
 

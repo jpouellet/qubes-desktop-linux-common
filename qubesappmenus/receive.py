@@ -290,9 +290,10 @@ def process_appmenus_templates(appmenusext, vm, appmenus):
 
 
     for appmenu_name in appmenus.keys():
-        if os.path.exists(
-                os.path.join(appmenusext.templates_dir(vm),
-                    appmenu_name)):
+        appmenu_path = os.path.join(
+            appmenusext.templates_dir(vm),
+            appmenu_name) + '.desktop'
+        if os.path.exists(appmenu_path):
             vm.log.info("Updating {0}".format(appmenu_name))
         else:
             vm.log.info("Creating {0}".format(appmenu_name))
@@ -303,7 +304,7 @@ def process_appmenus_templates(appmenusext, vm, appmenus):
         if 'Icon' in appmenus[appmenu_name]:
             # the following line is used for time comparison
             icondest = os.path.join(appmenusext.template_icons_dir(vm),
-                                    os.path.splitext(appmenu_name)[0] + '.png')
+                                    appmenu_name + '.png')
 
             try:
                 icon = qubesimgconverter.Image. \
@@ -323,8 +324,7 @@ def process_appmenus_templates(appmenusext, vm, appmenus):
                 else:
                     del appmenus[appmenu_name]['Icon']
 
-        create_template(os.path.join(appmenusext.templates_dir(vm),
-            appmenu_name + '.desktop'), appmenu_name,
+        create_template(appmenu_path, appmenu_name,
             appmenus[appmenu_name], legacy_appmenus)
 
     # Delete appmenus of removed applications
