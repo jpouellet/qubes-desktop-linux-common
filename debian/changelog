@@ -1,3 +1,13 @@
+qubes-desktop-linux-common (4.0.1-1) unstable; urgency=medium
+
+  [ Wojtek Porczyk ]
+  * qubesappmenus: add --get-available and fix parsing
+
+  [ Marek Marczykowski-Górecki ]
+  * Fix application icons generation
+
+ -- Marek Marczykowski-Górecki <marmarek@invisiblethingslab.com>  Sun, 16 Jul 2017 10:40:51 +0200
+
 qubes-desktop-linux-common (4.0.0-1) unstable; urgency=medium
 
   * 
