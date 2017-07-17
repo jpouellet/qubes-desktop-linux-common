@@ -92,7 +92,7 @@ fi
 %{python3_sitelib}/qubesappmenus/__pycache__/*
 %{python3_sitelib}/qubesappmenus/__init__.py
 %{python3_sitelib}/qubesappmenus/receive.py
-%{python3_sitelib}/qubesappmenus/qubes-appmenu-select.desktop.template
+%{python3_sitelib}/qubesappmenus/qubes-vm-settings.desktop.template
 %{python3_sitelib}/qubesappmenus/qubes-servicevm.directory.template
 %{python3_sitelib}/qubesappmenus/qubes-templatevm.directory.template
 %{python3_sitelib}/qubesappmenus/qubes-vm.directory.template

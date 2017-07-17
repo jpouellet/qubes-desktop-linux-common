@@ -180,18 +180,18 @@ class Appmenus(object):
                 changed_appmenus.append(appmenu)
         if self.write_desktop_file(vm,
                 pkg_resources.resource_string(
-                    __name__, 'qubes-appmenu-select.desktop.template'
+                    __name__, 'qubes-vm-settings.desktop.template'
                 ).decode(),
                 os.path.join(appmenus_dir,
-                    '-'.join((vm.name, 'qubes-appmenu-select.desktop')))):
-            changed_appmenus.append('qubes-appmenu-select.desktop')
+                    '-'.join((vm.name, 'qubes-vm-settings.desktop')))):
+            changed_appmenus.append('qubes-vm-settings.desktop')
 
         if changed_appmenus:
             anything_changed = True
 
         target_appmenus = map(
             lambda x: '-'.join((vm.name, x)),
-            appmenus + ['qubes-appmenu-select.desktop']
+            appmenus + ['qubes-vm-settings.desktop']
         )
 
         # remove old entries
