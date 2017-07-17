@@ -1,10 +1,10 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Exec=qubes-vm-settings %VMNAME% applications
+Exec=qubes-vm-settings %VMNAME%
 Icon=qubes-appmenu-select
 Terminal=false
-Name=%VMNAME%: Add more shortcuts...
-GenericName=%VMNAME%: Add more shortcuts...
+Name=%VMNAME%: VM Settings
+GenericName=%VMNAME%: VM Settings
 StartupNotify=false
 Categories=System;X-Qubes-VM;

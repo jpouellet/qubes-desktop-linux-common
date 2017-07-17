@@ -23,6 +23,7 @@ Requires:	xorg-x11-utils
 Requires:	python3-qubesimgconverter
 Requires:	python3-qubesadmin
 Requires:	python3-pyxdg
+Requires:   qubes-manager
 
 %define _builddir %(pwd)
 
