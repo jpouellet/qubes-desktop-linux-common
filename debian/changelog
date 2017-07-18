@@ -1,3 +1,14 @@
+qubes-desktop-linux-common (4.0.2-1) unstable; urgency=medium
+
+  [ Marta Marczykowska-Górecka ]
+  * fixes to system menu
+
+  [ Marek Marczykowski-Górecki ]
+  * Rename qubes-appmenu-select.desktop to qubes-vm-settings.desktop
+  * appmenus: change 'hvm' property to 'virt_mode'
+
+ -- Marek Marczykowski-Górecki <marmarek@invisiblethingslab.com>  Tue, 18 Jul 2017 05:22:13 +0200
+
 qubes-desktop-linux-common (4.0.1-1) unstable; urgency=medium
 
   [ Wojtek Porczyk ]
