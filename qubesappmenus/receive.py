@@ -151,7 +151,7 @@ def get_appmenus(vm):
         p.wait()
         p.stdout.close()
         if p.returncode != 0:
-            if vm.hvm:
+            if vm.virt_mode == 'hvm':
                 untrusted_appmenulist = fallback_hvm_appmenulist()
             else:
                 raise qubesadmin.exc.QubesException(
@@ -280,7 +280,7 @@ def process_appmenus_templates(appmenusext, vm, appmenus):
     if not os.path.exists(appmenusext.template_icons_dir(vm)):
         os.makedirs(appmenusext.template_icons_dir(vm))
 
-    if vm.hvm:
+    if vm.virt_mode == 'hvm':
         if not os.path.exists(os.path.join(
                 appmenusext.templates_dir(vm),
                 os.path.basename(

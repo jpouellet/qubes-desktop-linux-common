@@ -356,7 +356,7 @@ class Appmenus(object):
             os.makedirs(self.templates_dir(vm))
             os.makedirs(self.template_icons_dir(vm))
 
-        if vm.hvm and src is None:
+        if vm.virt_mode == 'hvm' and src is None:
             vm.log.info("Creating appmenus directory: {0}".format(
                 self.templates_dir(vm)))
             shutil.copy(AppmenusPaths.appmenu_start_hvm_template,
