@@ -54,32 +54,25 @@ class AppmenusExtension(qubes.ext.Extension):
         if proc.returncode != 0:
             self.log.warning('Command \'%s\' failed', ' '.join(command))
 
-    @qubes.ext.handler('property-pre-set:name', vm=qubes.vm.qubesvm.QubesVM)
-    def pre_rename(self, vm, event, name, newvalue, oldvalue=None):
-        if oldvalue:
-            asyncio.ensure_future(self.run_as_user(
-                ['qvm-appmenus', '--remove', oldvalue]))
-
-    @qubes.ext.handler('property-set:name', vm=qubes.vm.qubesvm.QubesVM)
-    def post_rename(self, vm, event, name, newvalue, oldvalue=None):
-        asyncio.ensure_future(self.run_as_user(
-            ['qvm-appmenus', '--create', newvalue]))
-
     @qubes.ext.handler('domain-create-on-disk')
+    @asyncio.coroutine
     def create_on_disk(self, vm, event):
-        asyncio.ensure_future(self.run_as_user(
-            ['qvm-appmenus', '--init', '--create', vm.name]))
+        yield from self.run_as_user(
+            ['qvm-appmenus', '--init', '--create', vm.name])
+
 
     @qubes.ext.handler('domain-clone-files')
+    @asyncio.coroutine
     def clone_disk_files(self, vm, event, src):
-        asyncio.ensure_future(self.run_as_user(
+        yield from self.run_as_user(
             ['qvm-appmenus', '--init', '--create', '--source=' + src.name,
-            vm.name]))
+            vm.name])
 
     @qubes.ext.handler('domain-remove-from-disk')
+    @asyncio.coroutine
     def remove_from_disk(self, vm, event):
-        asyncio.ensure_future(self.run_as_user(
-            ['qvm-appmenus', '--remove', vm.name]))
+        yield from self.run_as_user(
+            ['qvm-appmenus', '--remove', vm.name])
 
     @qubes.ext.handler('property-set:label')
     def label_setter(self, vm, event, **kwargs):
