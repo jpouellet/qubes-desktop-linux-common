@@ -67,7 +67,7 @@ for i in /usr/share/qubes/icons/*.png ; do
 done
 xdg-icon-resource forceupdate
 
-xdg-desktop-menu install /usr/share/qubes-appmenus/qubes-dispvm.directory /usr/share/qubes-appmenus/qubes-dispvm-*.desktop
+#xdg-desktop-menu install /usr/share/qubes-appmenus/qubes-dispvm.directory /usr/share/qubes-appmenus/qubes-dispvm-*.desktop
 
 %preun
 if [ "$1" = 0 ] ; then
@@ -77,7 +77,7 @@ if [ "$1" = 0 ] ; then
         xdg-icon-resource uninstall --novendor --size 48 $i
     done
 
-    xdg-desktop-menu uninstall /usr/share/qubes-appmenus/qubes-dispvm.directory /usr/share/qubes-appmenus/qubes-dispvm-*.desktop
+    #xdg-desktop-menu uninstall /usr/share/qubes-appmenus/qubes-dispvm.directory /usr/share/qubes-appmenus/qubes-dispvm-*.desktop
 fi
 
 
