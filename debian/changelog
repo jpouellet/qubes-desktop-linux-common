@@ -1,3 +1,9 @@
+qubes-desktop-linux-common (4.0.4-1) unstable; urgency=medium
+
+  * appmenus: disable currently broken DispVM launchers
+
+ -- Marek Marczykowski-Górecki <marmarek@invisiblethingslab.com>  Sun, 30 Jul 2017 03:39:45 +0200
+
 qubes-desktop-linux-common (4.0.3-1) unstable; urgency=medium
 
   * appmenus: convert to coroutine event handlers, remove rename
