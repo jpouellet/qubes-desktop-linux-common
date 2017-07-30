@@ -206,7 +206,6 @@ class Appmenus(object):
                 desktop_menu_cmd = ['xdg-desktop-menu', 'uninstall']
                 if not refresh_cache:
                     desktop_menu_cmd.append('--noupdate')
-                desktop_menu_cmd.append(directory_file)
                 desktop_menu_cmd.extend(appmenus_to_remove_fnames)
                 desktop_menu_env = os.environ.copy()
                 desktop_menu_env['LC_COLLATE'] = 'C'
