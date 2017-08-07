@@ -96,6 +96,7 @@ fi
 %{python3_sitelib}/qubesappmenus/qubes-servicevm.directory.template
 %{python3_sitelib}/qubesappmenus/qubes-templatevm.directory.template
 %{python3_sitelib}/qubesappmenus/qubes-vm.directory.template
+%{python3_sitelib}/qubesappmenus/qubes-dispvm.directory.template
 %{python3_sitelib}/qubesappmenus/tests.py
 %{python3_sitelib}/qubesappmenus/tests_integ.py
 %{python3_sitelib}/qubesappmenus/test-data

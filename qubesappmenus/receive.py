@@ -255,6 +255,9 @@ def create_template(path, name, values, legacy):
     if legacy:
         desktop_entry += "Exec=qvm-run -q -a %VMNAME% -- {0}\n".format(
             pipes.quote(values['Exec']))
+        desktop_entry += \
+            "X-Qubes-DispvmExec=qvm-run -q -a --dispvm=%VMNAME% -- {0}\n".\
+            format(pipes.quote(values['Exec']))
     else:
         # already validated before, but make sure no one will break it
         assert ' ' not in name
@@ -262,6 +265,9 @@ def create_template(path, name, values, legacy):
         assert '%' not in name
         desktop_entry += "Exec=qvm-run -q -a --service -- %VMNAME% " \
                          "qubes.StartApp+{}\n".format(name)
+        desktop_entry += \
+            "X-Qubes-DispvmExec=qvm-run -q -a --service --dispvm=%VMNAME% " \
+            "-- qubes.StartApp+{}\n".format(name)
     if not os.path.exists(path) or desktop_entry != open(path, "r").read():
         desktop_file = open(path, "w")
         desktop_file.write(desktop_entry)

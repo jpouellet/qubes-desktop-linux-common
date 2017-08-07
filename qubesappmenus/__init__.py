@@ -30,6 +30,7 @@ import pkg_resources
 import xdg.BaseDirectory
 
 import qubesadmin
+import qubesadmin.exc
 import qubesadmin.tools
 import qubesadmin.vm
 
@@ -37,6 +38,14 @@ import qubesimgconverter
 
 
 basedir = os.path.join(xdg.BaseDirectory.xdg_data_home, 'qubes-appmenus')
+
+class DispvmNotSupportedError(qubesadmin.exc.QubesException):
+    '''Creating Disposable VM menu entries not supported by this template'''
+    def __init__(self, msg=None):
+        if msg is None:
+            msg = 'Creating Disposable VM menu entries ' \
+                  'not supported by this template'
+            super(DispvmNotSupportedError, self).__init__(msg)
 
 
 class AppmenusSubdirs:
@@ -89,29 +98,42 @@ class Appmenus(object):
         '''File listing files wanted in menu'''
         return os.path.join(basedir, str(vm), AppmenusSubdirs.whitelist)
 
-    def directory_template_name(self, vm):
+    def directory_template_name(self, vm, dispvm):
         '''File name of desktop directory entry template'''
-        if vm.__class__.__name__ == 'TemplateVM':
+        if dispvm:
+            return 'qubes-dispvm.directory.template'
+        elif vm.__class__.__name__ == 'TemplateVM':
             return 'qubes-templatevm.directory.template'
         elif vm.provides_network:
             return 'qubes-servicevm.directory.template'
         else:
             return 'qubes-vm.directory.template'
 
-    def write_desktop_file(self, vm, source, destination_path):
+    def write_desktop_file(self, vm, source, destination_path, dispvm=False):
         """Format .desktop/.directory file
 
         :param vm: QubesVM object for which write desktop file
         :param source: desktop file template (path or template itself)
         :param destination_path: where to write the desktop file
+        :param dispvm: create entries for launching in DispVM
         :return: True if target file was changed, otherwise False
         """
         if source.startswith('/'):
-            source = open(source).read()
+            with open(source) as f_source:
+                source = f_source.read()
+        if dispvm:
+            if '\nX-Qubes-DispvmExec=' not in source and '\nExec=' in source:
+                raise DispvmNotSupportedError()
+            source = source.\
+                replace('\nExec=', '\nX-Qubes-NonDispvmExec=').\
+                replace('\nX-Qubes-DispvmExec=', '\nExec=')
+        icon = vm.label.icon
+        if dispvm:
+            icon = icon.replace('appvm-', 'dispvm-')
         data = source.\
             replace("%VMNAME%", vm.name).\
             replace("%VMDIR%", os.path.join(basedir, vm.name)).\
-            replace("%XDGICON%", vm.label.icon)
+            replace("%XDGICON%", icon)
         if os.path.exists(destination_path):
             current_dest = open(destination_path).read()
             if current_dest == data:
@@ -155,11 +177,15 @@ class Appmenus(object):
         if not os.path.exists(appmenus_dir):
             os.makedirs(appmenus_dir)
 
+        dispvm = vm.features.check_with_template('appmenus-dispvm', False)
+
         anything_changed = False
         directory_file = os.path.join(appmenus_dir, vm.name + '-vm.directory')
         if self.write_desktop_file(vm,
                 pkg_resources.resource_string(__name__,
-                    self.directory_template_name(vm)).decode(), directory_file):
+                    self.directory_template_name(vm, dispvm)).decode(),
+                directory_file,
+                dispvm):
             anything_changed = True
 
         templates_dir = self.templates_dir(vm)
@@ -176,7 +202,8 @@ class Appmenus(object):
             if self.write_desktop_file(vm,
                     os.path.join(templates_dir, appmenu),
                     os.path.join(appmenus_dir,
-                        '-'.join((vm.name, appmenu)))):
+                        '-'.join((vm.name, appmenu))),
+                    dispvm):
                 changed_appmenus.append(appmenu)
         if self.write_desktop_file(vm,
                 pkg_resources.resource_string(
