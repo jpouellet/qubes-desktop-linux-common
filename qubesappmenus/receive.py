@@ -272,7 +272,7 @@ def process_appmenus_templates(appmenusext, vm, appmenus):
     old_umask = os.umask(0o002)
 
     legacy_appmenus = vm.features.check_with_template(
-        'legacy-appmenus', False)
+        'appmenus-legacy', False)
 
     if not os.path.exists(appmenusext.templates_dir(vm)):
         os.makedirs(appmenusext.templates_dir(vm))
