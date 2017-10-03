@@ -58,26 +58,26 @@ class AppmenusExtension(qubes.ext.Extension):
     @asyncio.coroutine
     def create_on_disk(self, vm, event):
         yield from self.run_as_user(
-            ['qvm-appmenus', '--init', '--create', vm.name])
+            ['qvm-appmenus', '--quiet', '--init', '--create', vm.name])
 
 
     @qubes.ext.handler('domain-clone-files')
     @asyncio.coroutine
     def clone_disk_files(self, vm, event, src):
         yield from self.run_as_user(
-            ['qvm-appmenus', '--init', '--create', '--source=' + src.name,
+            ['qvm-appmenus', '--quiet', '--init', '--create', '--source=' + src.name,
             vm.name])
 
     @qubes.ext.handler('domain-remove-from-disk')
     @asyncio.coroutine
     def remove_from_disk(self, vm, event):
         yield from self.run_as_user(
-            ['qvm-appmenus', '--remove', vm.name])
+            ['qvm-appmenus', '--quiet', '--remove', vm.name])
 
     @qubes.ext.handler('property-set:label')
     def label_setter(self, vm, event, **kwargs):
         asyncio.ensure_future(self.run_as_user(
-            ['qvm-appmenus', '--force', '--update', vm.name]))
+            ['qvm-appmenus', '--quiet', '--force', '--update', vm.name]))
 
     @qubes.ext.handler('domain-feature-set:internal')
     def on_feature_set_internal(self, vm, event, feature, newvalue,
@@ -86,10 +86,10 @@ class AppmenusExtension(qubes.ext.Extension):
             oldvalue = False
         if newvalue and not oldvalue:
             asyncio.ensure_future(self.run_as_user(
-                ['qvm-appmenus', '--remove', vm.name]))
+                ['qvm-appmenus', '--quiet', '--remove', vm.name]))
         elif not newvalue and oldvalue:
             asyncio.ensure_future(self.run_as_user(
-                ['qvm-appmenus', '--create', vm.name]))
+                ['qvm-appmenus', '--quiet', '--create', vm.name]))
 
     @qubes.ext.handler('template-postinstall')
     def on_template_postinstall(self, vm, event):

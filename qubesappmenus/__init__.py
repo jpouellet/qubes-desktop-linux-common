@@ -26,6 +26,7 @@ import os
 import os.path
 import shutil
 import dbus
+import logging
 import pkg_resources
 import xdg.BaseDirectory
 
@@ -258,7 +259,7 @@ class Appmenus(object):
                 desktop_menu_env['LC_COLLATE'] = 'C'
                 subprocess.check_call(desktop_menu_cmd, env=desktop_menu_env)
             except subprocess.CalledProcessError:
-                vm.log.warning("Problem creating appmenus")
+                vm.log.warning("Problem creating appmenus for %s", vm.name)
 
         if refresh_cache:
             if 'KDE_SESSION_UID' in os.environ:
@@ -276,8 +277,9 @@ class Appmenus(object):
             if hasattr(vm, 'log'):
                 vm.log.info("Removing appmenus")
             else:
-                print("Removing appmenus for {!s}".format(vm),
-                    file=sys.stderr)
+                if logging.root.getEffectiveLevel() <= logging.INFO:
+                    print("Removing appmenus for {!s}".format(vm),
+                        file=sys.stderr)
             installed_appmenus = os.listdir(appmenus_dir)
             directory_file = os.path.join(self.appmenus_dir(vm),
                 str(vm) + '-vm.directory')
@@ -297,7 +299,9 @@ class Appmenus(object):
                         env=desktop_menu_env)
                 except subprocess.CalledProcessError:
                     if hasattr(vm, 'log'):
-                        vm.log.warning("Problem removing appmenus")
+                        vm.log.warning(
+                            "Problem removing appmenus for %s", vm.name)
+
                     else:
                         print(
                             "Problem removing appmenus for {!s}".format(vm),
