@@ -245,7 +245,7 @@ class Appmenus(object):
                 os.unlink(appmenu)
 
         # add new entries
-        if anything_changed:
+        if anything_changed and changed_appmenus:
             try:
                 desktop_menu_cmd = ['xdg-desktop-menu', 'install']
                 if not refresh_cache:
