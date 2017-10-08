@@ -1,3 +1,11 @@
+qubes-desktop-linux-common (4.0.7-1) unstable; urgency=medium
+
+  * appmenus: improve logging, make quiet execution quiet
+  * appmenus: fix updating entries in menu
+  * Follow qubesadmin API change
+
+ -- Marek Marczykowski-Górecki <marmarek@invisiblethingslab.com>  Sun, 08 Oct 2017 20:36:07 +0200
+
 qubes-desktop-linux-common (4.0.6-1) unstable; urgency=medium
 
   * appmenus: rename 'legacy-appmenus' feature to 'appmenus-legacy'
