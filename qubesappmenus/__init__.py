@@ -170,7 +170,7 @@ class Appmenus(object):
 
         if vm.features.get('internal', False):
             return
-        if isinstance(vm, qubesadmin.vm.DispVM):
+        if vm.klass == 'DispVM':
             return
 
         vm.log.info("Creating appmenus")
@@ -324,7 +324,7 @@ class Appmenus(object):
 
         if vm.features.get('internal', False):
             return
-        if isinstance(vm, qubesadmin.vm.DispVM):
+        if vm.klass == 'DispVM':
             return
 
         whitelist = self.whitelist_path(vm)
