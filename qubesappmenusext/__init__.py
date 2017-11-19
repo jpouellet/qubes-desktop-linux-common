@@ -79,6 +79,11 @@ class AppmenusExtension(qubes.ext.Extension):
         asyncio.ensure_future(self.run_as_user(
             ['qvm-appmenus', '--quiet', '--force', '--update', vm.name]))
 
+    @qubes.ext.handler('property-set:provides_network')
+    def provides_network_setter(self, vm, event, **kwargs):
+        asyncio.ensure_future(self.run_as_user(
+            ['qvm-appmenus', '--quiet', '--force', '--update', vm.name]))
+
     @qubes.ext.handler('domain-feature-set:internal')
     def on_feature_set_internal(self, vm, event, feature, newvalue,
             oldvalue=None):

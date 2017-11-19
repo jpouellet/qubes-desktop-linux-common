@@ -103,7 +103,7 @@ class Appmenus(object):
         '''File name of desktop directory entry template'''
         if dispvm:
             return 'qubes-dispvm.directory.template'
-        elif vm.__class__.__name__ == 'TemplateVM':
+        elif vm.klass == 'TemplateVM':
             return 'qubes-templatevm.directory.template'
         elif vm.provides_network:
             return 'qubes-servicevm.directory.template'
