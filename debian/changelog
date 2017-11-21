@@ -1,3 +1,14 @@
+qubes-desktop-linux-common (4.0.8-1) unstable; urgency=medium
+
+  [ Arjan Schrijver ]
+  * appmenus: fix compatibility with Qubes OS 4.0
+
+  [ Marek Marczykowski-Górecki ]
+  * appmenus: fix choosing directory entry
+  * appmenus: fix installing updated appmenus
+
+ -- Marek Marczykowski-Górecki <marmarek@invisiblethingslab.com>  Tue, 21 Nov 2017 05:09:25 +0100
+
 qubes-desktop-linux-common (4.0.7-1) unstable; urgency=medium
 
   * appmenus: improve logging, make quiet execution quiet
