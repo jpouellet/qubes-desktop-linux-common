@@ -84,15 +84,17 @@ class AppmenusExtension(qubes.ext.Extension):
         asyncio.ensure_future(self.run_as_user(
             ['qvm-appmenus', '--quiet', '--force', '--update', vm.name]))
 
-    @qubes.ext.handler('domain-feature-set:internal')
-    def on_feature_set_internal(self, vm, event, feature, newvalue,
+    @qubes.ext.handler('domain-feature-set')
+    def on_feature_set_internal(self, vm, event, feature, value,
             oldvalue=None):
+        if feature != 'internal':
+            return
         if oldvalue is None:
             oldvalue = False
-        if newvalue and not oldvalue:
+        if value and not oldvalue:
             asyncio.ensure_future(self.run_as_user(
                 ['qvm-appmenus', '--quiet', '--remove', vm.name]))
-        elif not newvalue and oldvalue:
+        elif not value and oldvalue:
             asyncio.ensure_future(self.run_as_user(
                 ['qvm-appmenus', '--quiet', '--create', vm.name]))
 
